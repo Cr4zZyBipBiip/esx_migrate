@@ -25,8 +25,8 @@ function migrateVehicles()
 			local vehicleProps  = json.decode(result[i].vehicle)
 			local vehicle       = json.decode(result[i].vehicle) -- old vehicle
 			vehicleProps.plate  = GeneratePlate()                -- generate plate
-
-			migrateVehicle(vehicleProps, vehicle)
+			local idCarInDb     = result[i].id
+			migrateVehicle(vehicleProps, vehicle, idCarInDb)
 		end
 
 		print('\n\n\n')
@@ -44,7 +44,7 @@ Citizen.CreateThread(function()
 	end
 end)
 
-function migrateVehicle(vehicleProps, vehicleOld)
+function migrateVehicle(vehicleProps, vehicleOld, idCarDB)
 	while currentExecuting > Config.MaxMigrates do
 		Citizen.Wait(0)
 	end
@@ -52,11 +52,11 @@ function migrateVehicle(vehicleProps, vehicleOld)
 	io.write('esx_migrate: migrating . . . ')
 	currentExecuting = currentExecuting + 1
 
-	MySQL.Async.execute('UPDATE `owned_vehicles` SET `vehicle` = @vehicleNew, `plate` = @plateNew WHERE `vehicle` LIKE "%' .. vehicleOld.plate .. '%"',
+	MySQL.Async.execute('UPDATE `owned_vehicles` SET `vehicle` = @vehicleNew, `plate` = @plateNew WHERE `id` = @id',
 	{
 		['@vehicleNew'] = json.encode(vehicleProps),
 		['@plateNew']   = vehicleProps.plate,
-		['@plateOld']   = vehicleOld.plate
+		['@id']   = idCarDB
 	}, function(rowsChanged)
 		io.write('OK! (' .. vehicleOld.plate .. ' > ' .. vehicleProps.plate .. ')\n')
 		currentExecuting = currentExecuting - 1
